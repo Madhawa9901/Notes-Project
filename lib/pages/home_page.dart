@@ -34,7 +34,9 @@ class _HomePageState extends State<HomePage> {
           if (result != null && result is Map<String, dynamic>) {
             String? title = result['title'];
             String? note = result['note'];
-            firestoreService.addNote(note!, title!);
+            String? attachment = result['attachment'];
+            print(attachment);
+            firestoreService.addNote(note!, title!, imageURL: attachment);
           }
         },
         child: const Icon(Icons.add),
@@ -91,7 +93,7 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => NoteViewPage(title: noteTitle, note: data['note'],)
+                            builder: (context) => NoteViewPage(title: noteTitle, note: data['note'], imageUrl: data['imageURL'],)
                           ),
                         );
                       },

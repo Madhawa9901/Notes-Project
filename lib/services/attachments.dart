@@ -25,15 +25,18 @@ class AttachmentHandler {
 
   //upload image
   Future<String?> uploadImage(File imageFile) async {
-    try{
-      final storeageRef = FirebaseStorage.instance.ref().child('uploads/${DateTime.now().toString()}.jpg');
-      UploadTask uploadTask = storeageRef.putFile(imageFile);
+    try {
+      final storageRef = FirebaseStorage.instance.ref().child('uploads/${DateTime.now().toString()}.jpg');
+      UploadTask uploadTask = storageRef.putFile(imageFile);
       TaskSnapshot taskSnapshot = await uploadTask;
-      return await taskSnapshot.ref.getDownloadURL();
-    }catch(e){
+      String downloadURL = await taskSnapshot.ref.getDownloadURL();
+      print("Image uploaded successfully: $downloadURL"); // Debug print
+      return downloadURL;
+    } catch (e) {
       print("Error uploading image: $e");
     }
     return null;
   }
+
 
 }
