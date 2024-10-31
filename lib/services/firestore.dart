@@ -7,11 +7,12 @@ class FirestoreService{
   final CollectionReference titles = FirebaseFirestore.instance.collection('title');
 
   //create
-  Future<void> addNote(String note, String title, {String? imageURL}){
+  Future<void> addNote(String note, String title, {String? imageURL, String? documentURL}){
     return notes.add({
       'title': title,
       'note': note,
       'imageURL': imageURL ?? '',
+      'documentURL': documentURL,  // Store document URL
       'timestamp': Timestamp.now(),
     });
   }
@@ -24,11 +25,12 @@ class FirestoreService{
   }
 
   //update
-  Future<void> updateNote(String docID, String newNote, String newTitle, {String? imageURL}) {
+  Future<void> updateNote(String docID, String newNote, String newTitle, {String? imageURL, String? documentURL}) {
     return notes.doc(docID).update({
       'note': newNote,
       'title': newTitle,
       'imageURL': imageURL ?? '',
+      'documentURL': documentURL,  // Store document URL
       'timeStamp': Timestamp.now(),
     });
   }

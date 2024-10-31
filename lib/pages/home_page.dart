@@ -35,8 +35,8 @@ class _HomePageState extends State<HomePage> {
             String? title = result['title'];
             String? note = result['note'];
             String? attachment = result['attachment'];
-            print(attachment);
-            firestoreService.addNote(note!, title!, imageURL: attachment);
+            String? document = result['document'];
+            firestoreService.addNote(note!, title!, imageURL: attachment, documentURL: document);
           }
         },
         child: const Icon(Icons.add),
@@ -79,6 +79,7 @@ class _HomePageState extends State<HomePage> {
                   Map<String, dynamic> data =
                   document.data() as Map<String, dynamic>;
                   String noteTitle = data['title'] ?? 'Untitled';
+                  String? documentURL = data['documentURL'];
 
                   // Display as ListTile with a semi-transparent background
                   return Container(
@@ -93,7 +94,12 @@ class _HomePageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => NoteViewPage(title: noteTitle, note: data['note'], imageUrl: data['imageURL'],)
+                            builder: (context) => NoteViewPage(
+                              title: noteTitle,
+                              note: data['note'],
+                              imageUrl: data['imageURL'],
+                              documentUrl: documentURL,  // Pass document URL to NoteViewPage
+                            ),
                           ),
                         );
                       },
@@ -109,13 +115,15 @@ class _HomePageState extends State<HomePage> {
                           // Update
                           IconButton(
                             onPressed: () async {
-                              // Navigate to NotePage and pass existing title and note
+                              // Navigate to NotePage and pass existing title, note, and image URL
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => NotePage(
                                     initialTitle: noteTitle,  // Pass the existing title
                                     initialNote: data['note'], // Pass the existing note
+                                    initialImageUrl: data['imageURL'], // Pass the existing image URL
+                                    initialDocumentUrl: documentURL,  // Pass initial document URL
                                   ),
                                 ),
                               );
@@ -123,11 +131,14 @@ class _HomePageState extends State<HomePage> {
                               if (result != null && result is Map<String, dynamic>) {
                                 String? updatedTitle = result['title'];
                                 String? updatedNote = result['note'];
-                                firestoreService.updateNote(docID, updatedNote!, updatedTitle!);
+                                String? updatedAttachment = result['attachment'];
+                                String? updatedDocument = result['document'];
+                                firestoreService.updateNote(docID, updatedNote!, updatedTitle!, imageURL: updatedAttachment, documentURL: updatedDocument);
                               }
                             },
                             icon: const Icon(Icons.update, color: Colors.white),
                           ),
+
                           // Delete
                           IconButton(
                             onPressed: () => firestoreService.deleteNote(docID),

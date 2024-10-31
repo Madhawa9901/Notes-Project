@@ -5,8 +5,10 @@ import 'package:notes/services/attachments.dart';  // Import your AttachmentHand
 class NotePage extends StatefulWidget {
   final String? initialTitle;
   final String? initialNote;
+  final String? initialImageUrl; // Add this parameter to hold the initial image URL
+  final String? initialDocumentUrl;  // Add initial document URL
 
-  const NotePage({super.key, this.initialTitle, this.initialNote});
+  const NotePage({super.key, this.initialTitle, this.initialNote, this.initialImageUrl, this.initialDocumentUrl});
 
   @override
   _NotePageState createState() => _NotePageState();
@@ -16,8 +18,10 @@ class _NotePageState extends State<NotePage> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController noteController = TextEditingController();
   File? attachedFile;
+  File? attachedDocument;
   final AttachmentHandler attachmentHandler = AttachmentHandler();
   String? imageUrl;  // Store Firebase download URL
+  String? documentUrl;
 
   @override
   void initState() {
@@ -25,6 +29,8 @@ class _NotePageState extends State<NotePage> {
     // Initialize controllers with existing values
     titleController.text = widget.initialTitle ?? '';
     noteController.text = widget.initialNote ?? '';
+    imageUrl = widget.initialImageUrl; // Set the initial image URL
+    documentUrl = widget.initialDocumentUrl;  // Set initial document URL
   }
 
   // Auto-save function
@@ -32,17 +38,27 @@ class _NotePageState extends State<NotePage> {
     // Check if either the title or note has content before saving
     if (titleController.text.isNotEmpty || noteController.text.isNotEmpty) {
       String? uploadedImageUrl;
+      String? uploadedDocumentUrl;
+
+      if (attachedDocument != null) {
+        uploadedDocumentUrl = await attachmentHandler.uploadDocument(attachedDocument!);
+      } else {
+        uploadedDocumentUrl = documentUrl; // Use the initial URL if no new document
+      }
 
       // If a file is attached, upload it to Firebase
       if (attachedFile != null) {
         uploadedImageUrl = await attachmentHandler.uploadImage(attachedFile!);
+      } else {
+        uploadedImageUrl = imageUrl; // Retain the initial image URL if no new image is selected
       }
 
       // Pass back the title, note, and image URL even if the user didn't press save
       Navigator.pop(context, {
         'title': titleController.text,
         'note': noteController.text,
-        'attachment': uploadedImageUrl  // Pass the uploaded image URL
+        'attachment': uploadedImageUrl,  // Pass the uploaded image URL
+        'document': uploadedDocumentUrl, // Include document URL
       });
     } else {
       // If no content, just go back without saving
@@ -50,38 +66,56 @@ class _NotePageState extends State<NotePage> {
     }
   }
 
+  void attachDocument() async {
+    final File? pickedDocument = await attachmentHandler.pickDocument();
+    if (pickedDocument != null) {
+      setState(() {
+        attachedDocument = pickedDocument;
+      });
+    }
+  }
+
   // Attach a file (image) from gallery or camera
   void attachFile() async {
     final File? pickedFile = await showModalBottomSheet<File>(
-        context: context,
-        builder: (BuildContext context) {
-          return Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Pick from Gallery'),
-                onTap: () async {
-                  Navigator.pop(context, await attachmentHandler.pickImageFromGallery());
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take a Photo'),
-                onTap: () async {
-                  Navigator.pop(context, await attachmentHandler.pickImageFromCamera());
-                },
-              ),
-            ],
-          );
-        }
+      context: context,
+      builder: (BuildContext context) {
+        return Wrap(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Pick from Gallery'),
+              onTap: () async {
+                Navigator.pop(context, await attachmentHandler.pickImageFromGallery());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Photo'),
+              onTap: () async {
+                Navigator.pop(context, await attachmentHandler.pickImageFromCamera());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file),
+              title: const Text('Pick a Document'),
+              onTap: () async {
+                // Use the document picker from your attachment handler
+                Navigator.pop(context, await attachmentHandler.pickDocument());
+              },
+            ),
+          ],
+        );
+      },
     );
 
     if (pickedFile != null) {
       setState(() {
-        attachedFile = pickedFile;  // Set selected image
+        attachedFile = pickedFile; // Set selected file (image or document)
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +177,7 @@ class _NotePageState extends State<NotePage> {
                   ),
                 ),
 
-                // Display attached file preview
+                // Display initial image or attached file preview
                 if (attachedFile != null)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -155,7 +189,25 @@ class _NotePageState extends State<NotePage> {
                       attachedFile!,
                       fit: BoxFit.cover,
                     ),
+                  )
+                else if (imageUrl != null) // Show the initial image if no new image is selected
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                    ),
                   ),
+
+                // Display attached document filename
+                if (attachedDocument != null)
+                  Text('Document: ${attachedDocument!.path.split('/').last}', style: const TextStyle(color: Colors.white))
+                else if (documentUrl != null)
+                  Text('Document: ${Uri.parse(documentUrl!).pathSegments.last}', style: const TextStyle(color: Colors.white)),
 
                 // Save button
                 ElevatedButton(
