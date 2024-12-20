@@ -139,9 +139,15 @@ class _HomePageState extends State<HomePage> {
                             icon: const Icon(Icons.update, color: Colors.white),
                           ),
 
-                          // Delete
+                          // Delete button
                           IconButton(
-                            onPressed: () => firestoreService.deleteNote(docID),
+                            onPressed: () {
+                              firestoreService.deleteNote(
+                                docID,
+                                imageUrl: data['imageURL'],
+                                documentUrl: documentURL,
+                              );
+                            },
                             icon: const Icon(Icons.delete, color: Colors.white),
                           ),
                         ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';  // Import to handle document URL launching
 
-class NoteViewPage extends StatelessWidget {
+class NoteViewPage extends StatefulWidget {
   final String title;
   final String? note;
   final String? imageUrl; // Add this line to accept image URL
@@ -9,11 +9,16 @@ class NoteViewPage extends StatelessWidget {
 
   const NoteViewPage(
       {super.key,
-      required this.title,
-      this.note,
-      this.imageUrl,
-      this.documentUrl});
+        required this.title,
+        this.note,
+        this.imageUrl,
+        this.documentUrl});
 
+  @override
+  _NoteViewPageState createState() => _NoteViewPageState();
+}
+
+class _NoteViewPageState extends State<NoteViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,7 +39,7 @@ class NoteViewPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                widget.title,
                 style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -42,13 +47,15 @@ class NoteViewPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                note ?? 'No content available',
+                widget.note ?? 'No content available',
                 style: const TextStyle(fontSize: 16, color: Colors.white),
               ),
               const SizedBox(height: 16),
 
-              // Display attachment if imageUrl is provided
-              if (imageUrl != null && imageUrl!.isNotEmpty)
+              // Display preview based on attachment
+              if (widget.imageUrl == null)
+                const SizedBox(height: 20)
+              else if (widget.imageUrl!.isNotEmpty)
                 GestureDetector(
                   onTap: () {
                     // Show the image in full screen
@@ -56,48 +63,47 @@ class NoteViewPage extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            FullScreenImagePage(imageUrl: imageUrl!),
+                            FullScreenImagePage(imageUrl: widget.imageUrl!),
                       ),
                     );
                   },
                   child: Image.network(
-                    imageUrl!,
+                    widget.imageUrl!,
                     height: 200, // Adjust height as needed
                     width: double.infinity,
                     fit: BoxFit.cover,
                   ),
                 ),
 
-              // Spacer
-              const SizedBox(height: 16),
-
-              // Display document icon if a document is attached
-              if (documentUrl != null && documentUrl!.isNotEmpty)
-                GestureDetector(
-                  onTap: () async {
-                    // Open the document URL in the browser
-                    if (await canLaunchUrl(Uri.parse(documentUrl!))) {
-                      await launchUrl(Uri.parse(documentUrl!),
-                          mode: LaunchMode.externalApplication);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Could not open document')),
-                      );
-                    }
-                  },
-                  child: Row(
-                    children: [
-                      Icon(Icons.insert_drive_file,
-                          color: Colors.white, size: 40),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'View Attached Document',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ],
-                  ),
+              if (widget.documentUrl?.isEmpty ?? true)
+                const SizedBox(height: 20)
+              else if (widget.documentUrl!.isNotEmpty)
+                const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () async {
+                  // Open the document URL in the browser
+                  if (await canLaunchUrl(Uri.parse(widget.documentUrl!))) {
+                    await launchUrl(Uri.parse(widget.documentUrl!),
+                        mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Could not open document')),
+                    );
+                  }
+                },
+                child: Row(
+                  children: [
+                    Icon(Icons.insert_drive_file,
+                        color: Colors.white, size: 40),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'View Attached Document',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),

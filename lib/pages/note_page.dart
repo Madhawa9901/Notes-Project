@@ -66,22 +66,13 @@ class _NotePageState extends State<NotePage> {
     }
   }
 
-  void attachDocument() async {
-    final File? pickedDocument = await attachmentHandler.pickDocument();
-    if (pickedDocument != null) {
-      setState(() {
-        attachedDocument = pickedDocument;
-      });
-    }
-  }
-
-  // Attach a file (image) from gallery or camera
-  void attachFile() async {
+  void attachFileOrDocument() async {
     final File? pickedFile = await showModalBottomSheet<File>(
       context: context,
       builder: (BuildContext context) {
         return Wrap(
           children: <Widget>[
+            // Option to pick an image from the gallery
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text('Pick from Gallery'),
@@ -89,6 +80,7 @@ class _NotePageState extends State<NotePage> {
                 Navigator.pop(context, await attachmentHandler.pickImageFromGallery());
               },
             ),
+            // Option to take a photo with the camera
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Take a Photo'),
@@ -96,11 +88,11 @@ class _NotePageState extends State<NotePage> {
                 Navigator.pop(context, await attachmentHandler.pickImageFromCamera());
               },
             ),
+            // Option to pick a document
             ListTile(
               leading: const Icon(Icons.insert_drive_file),
               title: const Text('Pick a Document'),
               onTap: () async {
-                // Use the document picker from your attachment handler
                 Navigator.pop(context, await attachmentHandler.pickDocument());
               },
             ),
@@ -109,13 +101,21 @@ class _NotePageState extends State<NotePage> {
       },
     );
 
+    // Handle the picked file
     if (pickedFile != null) {
-      setState(() {
-        attachedFile = pickedFile; // Set selected file (image or document)
-      });
+      if (pickedFile.path.endsWith('.pdf') || pickedFile.path.endsWith('.doc') || pickedFile.path.endsWith('.docx') || pickedFile.path.endsWith('.txt')) {
+        // It's a document
+        setState(() {
+          attachedDocument = pickedFile;
+        });
+      } else {
+        // It's an image
+        setState(() {
+          attachedFile = pickedFile;
+        });
+      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +130,7 @@ class _NotePageState extends State<NotePage> {
           actions: [
             IconButton(
               icon: const Icon(Icons.attach_file),
-              onPressed: attachFile,  // Attach file when pressed
+              onPressed: attachFileOrDocument,  // Attach file when pressed
             ),
           ],
         ),
@@ -177,7 +177,40 @@ class _NotePageState extends State<NotePage> {
                   ),
                 ),
 
-                // Display initial image or attached file preview
+                // Display attached document preview
+                if (attachedDocument != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.insert_drive_file, color: Colors.white),
+                      const SizedBox(width: 10),
+                      Text(
+                        attachedDocument!.path.split('/').last,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      // IconButton(
+                      //   icon: const Icon(Icons.delete, color: Colors.white),
+                      //   onPressed: () =>// removeAttachment(false),  // Remove document
+                      // ),
+                    ],
+                  )
+                else if (documentUrl != null)
+                  Row(
+                    children: [
+                      const Icon(Icons.insert_drive_file, color: Colors.white),
+                      const SizedBox(width: 10),
+                      Text(
+                        Uri.parse(documentUrl!).pathSegments.last,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      // IconButton(
+                      //   icon: const Icon(Icons.delete, color: Colors.white),
+                      //   onPressed: () => removeAttachment(false),  // Remove document
+                      // ),
+                    ],
+                  )
+                else const SizedBox(height: 20),
+
+                // Display attached file preview (image or document)
                 if (attachedFile != null)
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
@@ -201,13 +234,8 @@ class _NotePageState extends State<NotePage> {
                       imageUrl!,
                       fit: BoxFit.cover,
                     ),
-                  ),
-
-                // Display attached document filename
-                if (attachedDocument != null)
-                  Text('Document: ${attachedDocument!.path.split('/').last}', style: const TextStyle(color: Colors.white))
-                else if (documentUrl != null)
-                  Text('Document: ${Uri.parse(documentUrl!).pathSegments.last}', style: const TextStyle(color: Colors.white)),
+                  )
+                else const SizedBox(height: 20),
 
                 // Save button
                 ElevatedButton(

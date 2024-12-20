@@ -48,8 +48,6 @@ class AttachmentHandler {
     return result != null ? File(result.files.single.path!) : null;
   }
 
-  // Method to upload document
-  // Method to upload a document
   Future<String?> uploadDocument(File file) async {
     try {
       // Get file extension to properly label the file in storage
@@ -67,6 +65,4 @@ class AttachmentHandler {
     }
     return null;
   }
-
-
 }
