@@ -12,7 +12,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  //firestore
+  // Firestore service instance
   final FirestoreService firestoreService = FirestoreService();
 
   @override
@@ -23,20 +23,21 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          // Navigate to the NotePage and wait for the note text to be returned
+          // Navigate to the NotePage and wait for the note data to be returned
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => const NotePage(),
             ),
           );
-          // If the user returns with a note, ensure result is a valid Map and contains title and note
+
+          // If the user returns with a note, add it to Firestore
           if (result != null && result is Map<String, dynamic>) {
             String? title = result['title'];
             String? note = result['note'];
-            String? attachment = result['attachment'];
-            String? document = result['document'];
-            firestoreService.addNote(note!, title!, imageURL: attachment, documentURL: document);
+            List<String>? attachments = result['attachments'];
+            List<String>? documents = result['documents'];
+            firestoreService.addNote(note!, title!, imageURLs: attachments, documentURLs: documents);
           }
         },
         child: const Icon(Icons.add),
@@ -67,26 +68,26 @@ class _HomePageState extends State<HomePage> {
             if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
               List<DocumentSnapshot> noteList = snapshot.data!.docs;
 
-              // Displaying notes (only the title part)
+              // Displaying notes
               return ListView.builder(
                 itemCount: noteList.length,
                 itemBuilder: (context, index) {
-                  // Get individual document
                   DocumentSnapshot document = noteList[index];
                   String docID = document.id;
 
-                  // Get note from document, ensure null safety for 'title'
-                  Map<String, dynamic> data =
-                  document.data() as Map<String, dynamic>;
+                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
                   String noteTitle = data['title'] ?? 'Untitled';
-                  String? documentURL = data['documentURL'];
+                  String noteContent = data['note'] ?? '';
+                  List<String>? imageURLs = (data['imageURLs'] as List<dynamic>?)
+                      ?.cast<String>();
+                  List<String>? documentURLs = (data['documentURLs'] as List<dynamic>?)
+                      ?.cast<String>();
 
-                  // Display as ListTile with a semi-transparent background
+                  // Display as ListTile
                   return Container(
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
+                    margin: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3), // Semi-transparent background
+                      color: Colors.blueGrey.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: ListTile(
@@ -96,9 +97,9 @@ class _HomePageState extends State<HomePage> {
                           MaterialPageRoute(
                             builder: (context) => NoteViewPage(
                               title: noteTitle,
-                              note: data['note'],
-                              imageUrl: data['imageURL'],
-                              documentUrl: documentURL,  // Pass document URL to NoteViewPage
+                              note: noteContent,
+                              imageUrls: imageURLs,
+                              documentUrls: documentURLs,
                             ),
                           ),
                         );
@@ -112,28 +113,35 @@ class _HomePageState extends State<HomePage> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Update
+                          // Update button
                           IconButton(
                             onPressed: () async {
-                              // Navigate to NotePage and pass existing title, note, and image URL
+                              // Navigate to NotePage with existing data
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => NotePage(
-                                    initialTitle: noteTitle,  // Pass the existing title
-                                    initialNote: data['note'], // Pass the existing note
-                                    initialImageUrl: data['imageURL'], // Pass the existing image URL
-                                    initialDocumentUrl: documentURL,  // Pass initial document URL
+                                    initialTitle: noteTitle,
+                                    initialNote: noteContent,
+                                    initialImageUrls: imageURLs,
+                                    initialDocumentUrls: documentURLs,
                                   ),
                                 ),
                               );
-                              // If the user returns with a note, update Firestore
+
+                              // If user returns with updated data, update Firestore
                               if (result != null && result is Map<String, dynamic>) {
                                 String? updatedTitle = result['title'];
                                 String? updatedNote = result['note'];
-                                String? updatedAttachment = result['attachment'];
-                                String? updatedDocument = result['document'];
-                                firestoreService.updateNote(docID, updatedNote!, updatedTitle!, imageURL: updatedAttachment, documentURL: updatedDocument);
+                                List<String>? updatedAttachments = result['attachments'];
+                                List<String>? updatedDocuments = result['documents'];
+                                firestoreService.updateNote(
+                                  docID,
+                                  updatedNote!,
+                                  updatedTitle!,
+                                  imageURLs: updatedAttachments,
+                                  documentURLs: updatedDocuments,
+                                );
                               }
                             },
                             icon: const Icon(Icons.update, color: Colors.white),
@@ -141,12 +149,44 @@ class _HomePageState extends State<HomePage> {
 
                           // Delete button
                           IconButton(
-                            onPressed: () {
-                              firestoreService.deleteNote(
-                                docID,
-                                imageUrl: data['imageURL'],
-                                documentUrl: documentURL,
+                            onPressed: () async {
+                              final shouldDelete = await showDialog<bool>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text('Delete File'),
+                                    content: const Text('Are you sure you want to delete this file?'),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
+
+                              if (shouldDelete == true) {
+                                // Perform the delete operation
+                                try {
+                                  await firestoreService.deleteNote(
+                                    docID,
+                                    imageURLs: imageURLs,
+                                    documentURLs: documentURLs,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('File deleted successfully')),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error deleting file: $e')),
+                                  );
+                                }
+                              }
                             },
                             icon: const Icon(Icons.delete, color: Colors.white),
                           ),
@@ -157,7 +197,12 @@ class _HomePageState extends State<HomePage> {
                 },
               );
             } else {
-              return const Center(child: Text('No Notes....', style: TextStyle(color: Colors.white)));
+              return const Center(
+                child: Text(
+                  'No Notes....',
+                  style: TextStyle(color: Colors.white),
+                ),
+              );
             }
           },
         ),
