@@ -15,11 +15,98 @@ class _HomePageState extends State<HomePage> {
   // Firestore service instance
   final FirestoreService firestoreService = FirestoreService();
 
+  void _showAppInfo(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'About This App',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'This app helps you to create and store private notes. This is a flutter base app and using firebase backend. Thank you for using our app!',
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Notes'),
+        title: const Center(
+          child: Text(
+            'Notes',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 36,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white,),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          },
+        ),
+        actions: [
+        IconButton(
+        icon: const Icon(Icons.info_outline, color: Colors.white,),
+        onPressed: () {
+          _showAppInfo(context);
+        },
+          ),
+        ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: const [
+            SizedBox(
+              height: 150,
+              width: double.infinity,
+              child: DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                ),
+                child: Center(
+                  child: Text("About", style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),),
+                ),
+              ),
+            )
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -37,7 +124,8 @@ class _HomePageState extends State<HomePage> {
             String? note = result['note'];
             List<String>? attachments = result['attachments'];
             List<String>? documents = result['documents'];
-            firestoreService.addNote(note!, title!, imageURLs: attachments, documentURLs: documents);
+            firestoreService.addNote(note!, title!,
+                imageURLs: attachments, documentURLs: documents);
           }
         },
         child: const Icon(Icons.add),
@@ -75,17 +163,19 @@ class _HomePageState extends State<HomePage> {
                   DocumentSnapshot document = noteList[index];
                   String docID = document.id;
 
-                  Map<String, dynamic> data = document.data() as Map<String, dynamic>;
+                  Map<String, dynamic> data =
+                      document.data() as Map<String, dynamic>;
                   String noteTitle = data['title'] ?? 'Untitled';
                   String noteContent = data['note'] ?? '';
-                  List<String>? imageURLs = (data['imageURLs'] as List<dynamic>?)
-                      ?.cast<String>();
-                  List<String>? documentURLs = (data['documentURLs'] as List<dynamic>?)
-                      ?.cast<String>();
+                  List<String>? imageURLs =
+                      (data['imageURLs'] as List<dynamic>?)?.cast<String>();
+                  List<String>? documentURLs =
+                      (data['documentURLs'] as List<dynamic>?)?.cast<String>();
 
                   // Display as ListTile
                   return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 16.0),
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 15.0, horizontal: 16.0),
                     decoration: BoxDecoration(
                       color: Colors.blueGrey.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(10),
@@ -130,11 +220,14 @@ class _HomePageState extends State<HomePage> {
                               );
 
                               // If user returns with updated data, update Firestore
-                              if (result != null && result is Map<String, dynamic>) {
+                              if (result != null &&
+                                  result is Map<String, dynamic>) {
                                 String? updatedTitle = result['title'];
                                 String? updatedNote = result['note'];
-                                List<String>? updatedAttachments = result['attachments'];
-                                List<String>? updatedDocuments = result['documents'];
+                                List<String>? updatedAttachments =
+                                    result['attachments'];
+                                List<String>? updatedDocuments =
+                                    result['documents'];
                                 firestoreService.updateNote(
                                   docID,
                                   updatedNote!,
@@ -155,14 +248,17 @@ class _HomePageState extends State<HomePage> {
                                 builder: (BuildContext context) {
                                   return AlertDialog(
                                     title: const Text('Delete File'),
-                                    content: const Text('Are you sure you want to delete this file?'),
+                                    content: const Text(
+                                        'Are you sure you want to delete this file?'),
                                     actions: <Widget>[
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
                                         child: const Text('Cancel'),
                                       ),
                                       TextButton(
-                                        onPressed: () => Navigator.pop(context, true),
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
                                         child: const Text('Delete'),
                                       ),
                                     ],
@@ -179,11 +275,15 @@ class _HomePageState extends State<HomePage> {
                                     documentURLs: documentURLs,
                                   );
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('File deleted successfully')),
+                                    const SnackBar(
+                                        content:
+                                            Text('File deleted successfully')),
                                   );
                                 } catch (e) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error deleting file: $e')),
+                                    SnackBar(
+                                        content:
+                                            Text('Error deleting file: $e')),
                                   );
                                 }
                               }

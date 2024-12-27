@@ -41,6 +41,7 @@ dependencies:
   firebase_storage:
   url_launcher:
   file_picker:
+  open_file:
 
 dev_dependencies:
   flutter_test:

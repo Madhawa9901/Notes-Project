@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
 import 'package:url_launcher/url_launcher.dart'; // Import to handle document URL launching
 
 class NoteViewPage extends StatefulWidget {
@@ -115,18 +116,15 @@ class _NoteViewPageState extends State<NoteViewPage> {
                     final documentUrl = widget.documentUrls![index];
                     return GestureDetector(
                       onTap: () async {
-                        // Open the document URL in the browser
-                        if (await canLaunchUrl(Uri.parse(documentUrl))) {
-                          await launchUrl(Uri.parse(documentUrl),
-                              mode: LaunchMode.externalApplication);
-                        } else {
+                        final result = await OpenFile.open(documentUrl);
+                        print("OpenFile result: ${result.type}");
+                        if (result.type != ResultType.done) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Could not open document'),
-                            ),
+                            const SnackBar(content: Text('Could not open document')),
                           );
                         }
                       },
+
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Row(
